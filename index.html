@@ -335,11 +335,12 @@
 
 <script>
     const SUPABASE_URL = "https://lokbhgpordcjrwtujwfx.supabase.co";
-    const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxva2JoZ3BvcmRjanJ3dHVqd2Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMDI4NzAsImV4cCI6MjA5NzU3ODg3MH0.3ZBBpi-cgTkG4HfwSzvDyN8bg67nFA8TTJaNLOyOBb4";
+        const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxva2JoZ3BvcmRjanJ3dHVqd2Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMDI4NzAsImV4cCI6MjA5NzU3ODg3MH0.3ZBBpi-cgTkG4HfwSzvDyN8bg67nFA8TTJaNLOyOBb4";
 
     let accessToken = null;
     let refreshToken = null;
     let userEmail = null;
+    let userId = null;
 
     function showDrinkUI(email) {
       userEmail = email;
@@ -352,8 +353,28 @@
     function saveSession(data, email) {
       accessToken = data.access_token;
       refreshToken = data.refresh_token;
+      userId = data.user.id;
       localStorage.setItem("supabase_refresh_token", refreshToken);
       localStorage.setItem("supabase_email", email);
+    }
+
+    async function ensurePlayerRow(name, id) {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/beers?user_id=eq.${id}&select=user_id`, {
+        headers: { apikey: ANON_KEY, Authorization: `Bearer ${accessToken}` }
+      });
+      const existing = await res.json();
+
+      if (Array.isArray(existing) && existing.length === 0) {
+        await fetch(`${SUPABASE_URL}/rest/v1/beers`, {
+          method: "POST",
+          headers: {
+            apikey: ANON_KEY,
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ name, user_id: id, count: 0 })
+        });
+      }
     }
 
     async function login() {
@@ -375,7 +396,9 @@
       }
 
       saveSession(data, email);
+      await ensurePlayerRow(email.split("@")[0], userId);
       showDrinkUI(email);
+      loadTally();
     }
 
     async function tryRestoreSession() {
@@ -397,13 +420,16 @@
       }
 
       saveSession(data, savedEmail);
+      await ensurePlayerRow(savedEmail.split("@")[0], userId);
       showDrinkUI(savedEmail);
+      loadTally();
     }
 
     function logout() {
       accessToken = null;
       refreshToken = null;
       userEmail = null;
+      userId = null;
       localStorage.removeItem("supabase_refresh_token");
       localStorage.removeItem("supabase_email");
       document.getElementById("auth-section").style.display = "flex";
@@ -412,18 +438,26 @@
     }
 
     async function drinkBeer() {
-      const name = userEmail.split("@")[0];
       const btn = document.getElementById("beer-button");
       btn.disabled = true;
-      await fetch(`${SUPABASE_URL}/rest/v1/beers`, {
-        method: "POST",
+
+      // get current count for this user, then update it +1
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/beers?user_id=eq.${userId}&select=count`, {
+        headers: { apikey: ANON_KEY, Authorization: `Bearer ${accessToken}` }
+      });
+      const [row] = await res.json();
+      const newCount = (row?.count || 0) + 1;
+
+      await fetch(`${SUPABASE_URL}/rest/v1/beers?user_id=eq.${userId}`, {
+        method: "PATCH",
         headers: {
           apikey: ANON_KEY,
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ count: newCount })
       });
+
       btn.disabled = false;
       loadTally();
     }
@@ -439,7 +473,7 @@
     }
 
     async function loadTally() {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/beers?select=name`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/beers?select=name,count`, {
         headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` }
       });
 
@@ -455,17 +489,14 @@
         return;
       }
 
-      const counts = {};
-      rows.forEach(r => counts[r.name] = (counts[r.name] || 0) + 1);
+      const sorted = rows.sort((a, b) => b.count - a.count);
 
-      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-
-      board.innerHTML = sorted.map(([name, count], i) => `
+      board.innerHTML = sorted.map((row, i) => `
         <div class="row">
           <span class="rank">${i + 1}</span>
-          <span class="name">${name}</span>
-          <span class="tally-marks">${tallyMarks(count)}</span>
-          <span class="count">${count}</span>
+          <span class="name">${row.name}</span>
+          <span class="tally-marks">${tallyMarks(row.count)}</span>
+          <span class="count">${row.count}</span>
         </div>
       `).join("");
     }
