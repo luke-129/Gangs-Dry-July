@@ -245,6 +245,34 @@
     font-size: 18px;
   }
 
+  .about {
+    background: rgba(0,0,0,0.16);
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 12px;
+  }
+
+  .about p {
+    font-size: 18px;
+    line-height: 1.5;
+    margin: 0 0 10px;
+    color: var(--chalk-dim);
+  }
+  .about p:last-child { margin-bottom: 0; }
+
+  .about strong {
+    color: var(--chalk-yellow);
+    font-weight: 700;
+  }
+
+  .about .consequence {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--chalk-pink);
+    letter-spacing: 0.02em;
+  }
+
   footer {
     text-align: center;
     margin-top: 48px;
@@ -294,6 +322,13 @@
 
     <div class="board-label">Standings</div>
     <div id="tally" class="board"></div>
+
+    <div class="board-label">The rules</div>
+    <div class="about">
+      <p>Dry July, with stakes. Every beer you crack gets chalked up here, name and all — no hiding it.</p>
+      <p>Whoever's got the <strong>most beers</strong> on the board come August 1st <strong>loses</strong>.</p>
+      <p class="consequence">Consequence: TBD. Suggestions welcome. Choose wisely — you might be the one paying it.</p>
+    </div>
   </div>
 
   <footer>updates every few seconds — no refresh needed</footer>
