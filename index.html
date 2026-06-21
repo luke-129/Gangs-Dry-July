@@ -3,30 +3,89 @@
 <head><title>Dry July Tally</title></head>
 <body>
   <h1>🍺 Dry July Tally</h1>
+
+  <div id="auth-section">
+    <input id="email" type="email" placeholder="Email" />
+    <input id="password" type="password" placeholder="Password" />
+    <button onclick="login()">Log In</button>
+    <span id="auth-status"></span>
+  </div>
+
+  <div id="drink-section" style="display:none;">
+    <span id="welcome"></span>
+    <button onclick="drinkBeer()">🍺 I had a beer</button>
+    <button onclick="logout()">Log Out</button>
+  </div>
+
   <table id="tally"></table>
 
   <script>
     const SUPABASE_URL = "https://lokbhgpordcjrwtujwfx.supabase.co";
-    const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxva2JoZ3BvcmRjanJ3dHVqd2Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMDI4NzAsImV4cCI6MjA5NzU3ODg3MH0.3ZBBpi-cgTkG4HfwSzvDyN8bg67nFA8TTJaNLOyOBb4";
+    const ANON_KEY = "your-anon-key";
+
+    let accessToken = null;
+    let userEmail = null;
+
+    async function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        method: "POST",
+        headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        document.getElementById("auth-status").innerText = "Login failed";
+        return;
+      }
+
+      accessToken = data.access_token;
+      userEmail = email;
+      document.getElementById("auth-section").style.display = "none";
+      document.getElementById("drink-section").style.display = "block";
+      document.getElementById("welcome").innerText = `Logged in as ${email}`;
+    }
+
+    function logout() {
+      accessToken = null;
+      userEmail = null;
+      document.getElementById("auth-section").style.display = "block";
+      document.getElementById("drink-section").style.display = "none";
+    }
+
+    async function drinkBeer() {
+      const name = userEmail.split("@")[0]; // or map email -> display name
+      await fetch(`${SUPABASE_URL}/rest/v1/beers`, {
+        method: "POST",
+        headers: {
+          apikey: ANON_KEY,
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name })
+      });
+      loadTally();
+    }
 
     async function loadTally() {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/Beers?select=name`, {
-        headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` }
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/beers?select=name`, {
+        headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` }
       });
       const rows = await res.json();
-
       const counts = {};
       rows.forEach(r => counts[r.name] = (counts[r.name] || 0) + 1);
 
-      const table = document.getElementById("tally");
-      table.innerHTML = Object.entries(counts)
+      document.getElementById("tally").innerHTML = Object.entries(counts)
         .sort((a, b) => b[1] - a[1])
         .map(([name, count]) => `<tr><td>${name}</td><td>${count}</td></tr>`)
         .join("");
     }
 
     loadTally();
-    setInterval(loadTally, 5000); // refetch every 5 secondss
+    setInterval(loadTally, 5000);
   </script>
 </body>
 </html>
