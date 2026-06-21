@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head><title>Dry July Tally</title></head>
+<body>
+  <h1>🍺 Dry July Tally</h1>
+  <table id="tally"></table>
+
+  <script>
+    const SUPABASE_URL = "https://lokbhgpordcjrwtujwfx.supabase.co";
+    const API_KEY = "sb_secret_RSAT4S6L4jrSKMEOHC6YHQ_Lt9SWgEf";
+
+    async function loadTally() {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/drinks?select=name`, {
+        headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` }
+      });
+      const rows = await res.json();
+
+      const counts = {};
+      rows.forEach(r => counts[r.name] = (counts[r.name] || 0) + 1);
+
+      const table = document.getElementById("tally");
+      table.innerHTML = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, count]) => `<tr><td>${name}</td><td>${count}</td></tr>`)
+        .join("");
+    }
+
+    loadTally();
+  </script>
+</body>
+</html>
