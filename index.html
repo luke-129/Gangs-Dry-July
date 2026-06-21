@@ -213,6 +213,14 @@
   }
   .row:nth-child(1) .rank { color: var(--chalk-yellow); opacity: 1; }
 
+  .row.consequence .name {
+    color: #ff3b30;
+    text-shadow: 0 0 10px rgba(255,59,48,0.5);
+  }
+  .row.consequence .count {
+    color: #ff3b30;
+  }
+
   .name {
     font-family: 'Caveat', cursive;
     font-weight: 700;
@@ -271,7 +279,6 @@
     font-size: 13px;
     color: var(--chalk-pink);
     letter-spacing: 0.02em;
-    font-weight: bold;
   }
 
   footer {
@@ -327,9 +334,8 @@
     <div class="board-label">The rules</div>
     <div class="about">
       <p>Dry July, with stakes. Every beer you crack gets chalked up here, name and all — no hiding it.</p>
-      <p>Whoever's got the <strong>most beers</strong> on the board come August 1st <strong>loses</strong> and suffers the consequence.</p>
-      <p class="consequence">Consequence: TBA, Suggestions welcome. The consequence is optional — you can play without committing to it.
-Anyone who does opt in will be highlighted in red, and once a final consequence is chosen, it’ll be listed here.</p>
+      <p>Whoever's got the <strong>most beers</strong> on the board come August 1st <strong>loses</strong>.</p>
+      <p class="consequence">Consequence: TBD. Suggestions welcome. Choose wisely — you might be the one paying it.</p>
     </div>
   </div>
 
@@ -337,7 +343,7 @@ Anyone who does opt in will be highlighted in red, and once a final consequence 
 
 <script>
     const SUPABASE_URL = "https://lokbhgpordcjrwtujwfx.supabase.co";
-        const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxva2JoZ3BvcmRjanJ3dHVqd2Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMDI4NzAsImV4cCI6MjA5NzU3ODg3MH0.3ZBBpi-cgTkG4HfwSzvDyN8bg67nFA8TTJaNLOyOBb4";
+            const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxva2JoZ3BvcmRjanJ3dHVqd2Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMDI4NzAsImV4cCI6MjA5NzU3ODg3MH0.3ZBBpi-cgTkG4HfwSzvDyN8bg67nFA8TTJaNLOyOBb4";
 
     let accessToken = null;
     let refreshToken = null;
@@ -475,7 +481,7 @@ Anyone who does opt in will be highlighted in red, and once a final consequence 
     }
 
     async function loadTally() {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/beers?select=name,count`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/beers?select=name,count,consequence`, {
         headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` }
       });
 
@@ -494,7 +500,7 @@ Anyone who does opt in will be highlighted in red, and once a final consequence 
       const sorted = rows.sort((a, b) => b.count - a.count);
 
       board.innerHTML = sorted.map((row, i) => `
-        <div class="row">
+        <div class="row${row.consequence ? ' consequence' : ''}">
           <span class="rank">${i + 1}</span>
           <span class="name">${row.name}</span>
           <span class="tally-marks">${tallyMarks(row.count)}</span>
