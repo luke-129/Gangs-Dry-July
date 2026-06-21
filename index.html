@@ -10,7 +10,7 @@
     const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxva2JoZ3BvcmRjanJ3dHVqd2Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMDI4NzAsImV4cCI6MjA5NzU3ODg3MH0.3ZBBpi-cgTkG4HfwSzvDyN8bg67nFA8TTJaNLOyOBb4";
 
     async function loadTally() {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/drinks?select=name`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/Beers?select=name`, {
         headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` }
       });
       const rows = await res.json();
