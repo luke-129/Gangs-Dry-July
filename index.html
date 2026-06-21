@@ -24,7 +24,22 @@
     const ANON_KEY = "your-anon-key";
 
     let accessToken = null;
+    let refreshToken = null;
     let userEmail = null;
+
+    function showDrinkUI(email) {
+      userEmail = email;
+      document.getElementById("auth-section").style.display = "none";
+      document.getElementById("drink-section").style.display = "block";
+      document.getElementById("welcome").innerText = `Logged in as ${email}`;
+    }
+
+    function saveSession(data, email) {
+      accessToken = data.access_token;
+      refreshToken = data.refresh_token;
+      localStorage.setItem("supabase_refresh_token", refreshToken);
+      localStorage.setItem("supabase_email", email);
+    }
 
     async function login() {
       const email = document.getElementById("email").value;
@@ -42,22 +57,45 @@
         return;
       }
 
-      accessToken = data.access_token;
-      userEmail = email;
-      document.getElementById("auth-section").style.display = "none";
-      document.getElementById("drink-section").style.display = "block";
-      document.getElementById("welcome").innerText = `Logged in as ${email}`;
+      saveSession(data, email);
+      showDrinkUI(email);
+    }
+
+    async function tryRestoreSession() {
+      const savedRefreshToken = localStorage.getItem("supabase_refresh_token");
+      const savedEmail = localStorage.getItem("supabase_email");
+      if (!savedRefreshToken) return;
+
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+        method: "POST",
+        headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: savedRefreshToken })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        // saved token expired/invalid, clear it and show login
+        localStorage.removeItem("supabase_refresh_token");
+        localStorage.removeItem("supabase_email");
+        return;
+      }
+
+      saveSession(data, savedEmail);
+      showDrinkUI(savedEmail);
     }
 
     function logout() {
       accessToken = null;
+      refreshToken = null;
       userEmail = null;
+      localStorage.removeItem("supabase_refresh_token");
+      localStorage.removeItem("supabase_email");
       document.getElementById("auth-section").style.display = "block";
       document.getElementById("drink-section").style.display = "none";
     }
 
     async function drinkBeer() {
-      const name = userEmail.split("@")[0]; // or map email -> display name
+      const name = userEmail.split("@")[0];
       await fetch(`${SUPABASE_URL}/rest/v1/beers`, {
         method: "POST",
         headers: {
@@ -84,6 +122,7 @@
         .join("");
     }
 
+    tryRestoreSession();
     loadTally();
     setInterval(loadTally, 5000);
   </script>
